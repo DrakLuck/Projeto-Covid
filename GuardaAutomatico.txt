@@ -1,0 +1,155 @@
+#include <Servo.h>
+#include <LiquidCrystal.h>
+
+const int tempPin = A2; //entrada analogica utilizada pelo sensor de temperatura
+const int botao = 8; //entrada digital do botao pull-up
+const int senDis1 = 9; //entrada digital do sensor de distancia do sensor de temperatura
+const int senDis2 = 10; //entrada digital do sensor de distancia do servo
+const int pinoServo = 11; //saida digital para o motor servo
+const int tempAceita = 40; //temperatura maxima permitida para acessar os locais
+
+int estado; //variavel para armazenar o status do pushbutton
+int distanciaCm = 0; //variavel para armazenar os valores da distancia medidos
+float tempMedida = 0; //variavel para armazenar os valores da temperuta medidos
+
+Servo meuservo; //
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2); //inicializa com os pinos de interface com o display
+
+void setup() {
+  pinMode(botao, INPUT); //Pino com botão será entrada 
+
+  meuservo.attach(pinoServo);
+  meuservo.write(0);
+  
+  lcd.begin(16, 2); //numero de linhas e colunas do LCD
+  lcd.print("Inicializando..."); //imprime a mensagem no LCD
+  delay(1000); //intervalo de 1s
+  
+  //Serial.begin(9600);
+ 
+}
+
+void loop() {
+  estado = digitalRead(botao); //le o estado do botão - HIGH OU LOW
+  
+  lcd.clear(); //limpa o texto anterior no LCD
+  lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print(" Laboratorio 01"); //imprime o texto no LCD
+  delay(10);
+  
+  while(estado == HIGH){ //Enquanto botão no nivel logico alto (HIGH)
+    estado = digitalRead(botao); //le o estado do botão - HIGH OU LOW
+    }
+  
+  lcd.clear(); //limpa o texto anterior no LCD
+  lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print("     Acesso"); //imprime o texto no LCD
+  lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 1
+  lcd.print("   Solicitado"); //imprime o texto no LCD
+  delay(1000);
+
+  lcd.clear(); //limpa o texto anterior no LCD
+  lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print(" Se aproxime do"); //imprime o texto no LCD
+  lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 1
+  lcd.print("sensor de temp."); //imprime o texto no LCD
+  
+  do{ //calcula a distancia em centimetros do sensor de distancia para o sensor de temperatura
+    distanciaCm = 0.01723 * distanciaUltrassonico(senDis1, senDis1);
+    //Serial.print(distanciaCm);
+    //Serial.println(" cm");
+    delay(100); 
+    }while(distanciaCm> 20); //Enquanto essa distancia for menor que 20 cm
+    
+    lcd.clear(); //limpa o texto anterior no LCD
+    lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+    tempMedida = calcularTemp(tempPin); //amarzena o valor da temperatura medido  
+  	lcd.setCursor(4,1); //posiciona o cursor na coluna 0 e linha 1
+  	lcd.print(tempMedida); //imprime a temperatura medida no LCD
+    lcd.print(" C"); //imprime o texto no LCD
+    delay(2000); //intervalo de 2s
+
+    if(tempMedida>tempAceita){//se a tempertura medida for maior que a temperatura permitida
+      lcd.clear(); //limpa o texto anterior no LCD
+      lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+      lcd.print(" Acesso Negado"); //imprime o texto no LCD
+      delay(1000); //intervalo de 1s
+     }else{ //se a tempertura medida não for maior que a temperatura permitida
+      
+      lcd.clear(); //limpa o texto anterior no LCD
+      lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+      lcd.print(" Se aproxime"); //imprime o texto no LCD
+      lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 1
+      lcd.print("  do sensor"); //imprime o texto no LCD
+    
+       do{ //calcula a distancia em centimetros do sensor de distancia para o servo motor
+       distanciaCm = 0.01723 * distanciaUltrassonico(senDis2, senDis2);
+       //Serial.print(distanciaCm);
+       //Serial.println(" cm");
+       delay(100);
+       }while(distanciaCm> 20); //Enquanto essa distancia for menor que 20 cm
+         
+        lcd.clear(); //limpa o texto anterior no LCD
+        lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+        lcd.print(" Alcool em gel "); //imprime o texto no LCD
+        lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 1
+        lcd.print("    liberado"); //imprime o texto no LCD
+        
+       for(int i = 0;i <= 90; i++){ //movimenta o servo ate a posicao de 90 graus
+        meuservo.write(i); //escreve a posicao no servo
+        delay(50); 
+       }
+       delay(2000); //intervalo de 2s
+       for(int i = 90;i >= 0; i--){ //movimenta o servo de 90 ate 0 graus
+        meuservo.write(i); //escreve a posicao no servo
+        delay(50); 
+       }
+       
+       lcd.clear(); //limpa o texto anterior no LCD
+       lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+       lcd.print("Acesso Liberado"); //imprime o texto no LCD
+       delay(1000);//intervalo de 1s
+      }
+}
+
+//função que calcula a temperatura
+float calcularTemp(int pin){
+ 
+  float temperatura = 0; //variavel que guarda o valor da temperatura
+  int quantMedicoes = 5; //quantidade de medicoes realizadas 
+
+  lcd.clear(); //limpa o texto anterior no LCD
+  lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print("   Aferindo a"); //imprime o texto no LCD
+  lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print("  temperatura"); //imprime o texto no LCD
+    
+  for(int i = 0;i<quantMedicoes ;i++){ //realizar varias medicoes para evitar erro na leitura 
+  temperatura += (analogRead(pin) * 0.0048828125 * 50); //variavel recebe a temperatura calculada
+  delay(50);
+  }
+
+  temperatura = temperatura/quantMedicoes; //media das medicoes
+  
+  lcd.clear(); //limpa o texto anterior no LCD
+  lcd.setCursor(0,0); //posiciona o cursor na coluna 0 e linha 0
+  lcd.print("  Temperatura = "); //imprime o texto no LCD
+  lcd.setCursor(0,1); //posiciona o cursor na coluna 0 e linha 1
+  
+  return temperatura; //retorna o valor da temperatura
+
+}
+
+//funcao que retorna a medicao da distancia em centimetros (cm)
+long distanciaUltrassonico(int pinoTrigger, int pinoEcho){
+
+  pinMode(pinoTrigger, OUTPUT); //define o pino como saida
+  digitalWrite(pinoTrigger, LOW); //limpa o trigger
+  delayMicroseconds(2);
+  digitalWrite(pinoTrigger, HIGH); //seta o pino trigger para HIGH por 10 microsegundos
+  delayMicroseconds(10);
+  digitalWrite(pinoTrigger, LOW);//seta o pino trigger para LOW 
+  pinMode(pinoEcho, INPUT);//define o pino como entrada
+  
+  return pulseIn(pinoEcho, HIGH);//Le o pino Echo e retorna o tempo de viajem da onda sonora em microsegundos
+}
